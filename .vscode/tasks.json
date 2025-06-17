@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Iniciar Serviços",
+      "type": "shell",
+      "command": "cd translation-api && npm install && cd ../translation-worker && npm install",
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

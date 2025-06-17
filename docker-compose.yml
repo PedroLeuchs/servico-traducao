@@ -1,0 +1,85 @@
+version: "3"
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGODB_DATABASE=translation-service
+    networks:
+      - translation-network
+    healthcheck:
+      test: ["CMD", "echo", "1"] # Simplified health check
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management UI port
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - translation-network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  translation-api:
+    build:
+      context: ./translation-api
+      dockerfile: Dockerfile
+    container_name: translation-api
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - MONGODB_URI=mongodb://mongodb:27017/translation-service
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - QUEUE_NAME=translations
+    networks:
+      - translation-network
+    restart: on-failure
+
+  translation-worker:
+    build:
+      context: ./translation-worker
+      dockerfile: Dockerfile
+    container_name: translation-worker
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/translation-service
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - QUEUE_NAME=translations
+    networks:
+      - translation-network
+    restart: on-failure
+
+networks:
+  translation-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  rabbitmq_data:
