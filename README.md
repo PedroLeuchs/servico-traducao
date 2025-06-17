@@ -354,6 +354,3 @@ Esta arquitetura permite alta escalabilidade e resiliência:
    docker-compose restart
    ```
 
-## Licença
-
-Este projeto está licenciado sob a licença MIT.
